@@ -13,6 +13,7 @@ const cancelTaskBtn = document.getElementById('cancelTask');
 
 // State
 let categories = JSON.parse(localStorage.getItem('todoCategories')) || [];
+let categoryAccordionStates = JSON.parse(localStorage.getItem('categoryAccordionStates')) || {};
 let currentCategoryId = null;
 let draggedItem = null;
 let draggedItemType = null; // 'task' or 'category'
@@ -116,6 +117,9 @@ function createCategoryElement(category) {
     categoryElement.className = 'category';
     categoryElement.dataset.id = category.id;
     categoryElement.draggable = true;
+    // Attach drag event listeners directly
+    categoryElement.addEventListener('dragstart', handleCategoryDragStart);
+    categoryElement.addEventListener('dragend', handleDragEnd);
     
     let tasksHTML = '';
     if (category.tasks && category.tasks.length > 0) {
@@ -131,7 +135,7 @@ function createCategoryElement(category) {
     
     categoryElement.innerHTML = `
         <div class="category-header">
-            <h3 class="category-title">${category.name}</h3>
+            <h3 class="category-title" style="cursor:pointer;" data-category-id="${category.id}">${category.name}</h3>
             <div class="category-actions">
                 <button class="add-task" data-category-id="${category.id}" aria-label="Add task to ${category.name}">
                     <i class="fas fa-plus-circle"></i>
@@ -151,6 +155,22 @@ function createCategoryElement(category) {
             <i class="fas fa-plus"></i> Add Task
         </button>
     `;
+    // Restore accordion state
+    if (categoryAccordionStates[category.id] === 'closed') {
+        categoryElement.classList.add('accordion-closed');
+        categoryElement.classList.remove('accordion-open');
+        const tasksList = categoryElement.querySelector('.tasks-list');
+        const addTaskBtn = categoryElement.querySelector('.add-task-btn');
+        if (tasksList) tasksList.style.display = 'none';
+        if (addTaskBtn) addTaskBtn.style.display = 'none';
+    } else {
+        categoryElement.classList.add('accordion-open');
+        categoryElement.classList.remove('accordion-closed');
+        const tasksList = categoryElement.querySelector('.tasks-list');
+        const addTaskBtn = categoryElement.querySelector('.add-task-btn');
+        if (tasksList) tasksList.style.display = '';
+        if (addTaskBtn) addTaskBtn.style.display = '';
+    }
     return categoryElement;
 }
 
@@ -187,10 +207,38 @@ function createTaskElementHTML(task, categoryId) {
 
 // Set up event listeners for dynamically created elements
 function setupDynamicEventListeners() {
+    // Accordion toggle for category-title
+    document.querySelectorAll('.category-title').forEach(titleEl => {
+        titleEl.removeEventListener('click', handleCategoryAccordionClick);
+        titleEl.addEventListener('click', handleCategoryAccordionClick);
+    });
+}
+
+// Accordion handler for category-title
+function handleCategoryAccordionClick(e) {
+    const titleEl = e.currentTarget;
+    const categoryId = titleEl.dataset.categoryId;
+    const categoryEl = titleEl.closest('.category');
+    const tasksList = categoryEl.querySelector('.tasks-list');
+    const addTaskBtn = categoryEl.querySelector('.add-task-btn');
+    if (categoryEl.classList.contains('accordion-open')) {
+        // Collapse
+        tasksList.style.display = 'none';
+        addTaskBtn.style.display = 'none';
+        categoryEl.classList.remove('accordion-open');
+        categoryEl.classList.add('accordion-closed');
+        categoryAccordionStates[categoryId] = 'closed';
+    } else {
+        // Expand
+        tasksList.style.display = '';
+        addTaskBtn.style.display = '';
+        categoryEl.classList.remove('accordion-closed');
+        categoryEl.classList.add('accordion-open');
+        categoryAccordionStates[categoryId] = 'open';
+    }
+    localStorage.setItem('categoryAccordionStates', JSON.stringify(categoryAccordionStates));
     // Category drag events
     document.querySelectorAll('.category').forEach(categoryEl => {
-        categoryEl.addEventListener('dragstart', handleCategoryDragStart);
-        categoryEl.addEventListener('dragend', handleDragEnd);
         // Touch events for categories
         categoryEl.addEventListener('touchstart', handleTouchStart, { passive: false });
         categoryEl.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -467,6 +515,7 @@ function moveCategory(categoryId, targetContainerElement, clientY) {
 
     saveToLocalStorage();
     renderCategories();
+    // Do NOT call setupDynamicEventListeners here; let renderCategories handle it
 }
 
 
@@ -533,6 +582,8 @@ function handleCategoryContainerDrop(e) {
     if (!draggedId) return;
 
     moveCategory(draggedId, categoriesContainer, e.clientY);
+    // After drag and drop, persist accordion states
+    localStorage.setItem('categoryAccordionStates', JSON.stringify(categoryAccordionStates));
 
     if (draggedItem) draggedItem.classList.remove('dragging');
     draggedItem = null;
