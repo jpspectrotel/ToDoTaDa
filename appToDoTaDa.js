@@ -131,7 +131,7 @@ function createCategoryElement(category) {
     
     categoryElement.innerHTML = `
         <div class="category-header">
-            <h3 class="category-title">${category.name}</h3>
+            <h3 class="category-title" style="cursor:pointer;" data-category-id="${category.id}">${category.name}</h3>
             <div class="category-actions">
                 <button class="add-task" data-category-id="${category.id}" aria-label="Add task to ${category.name}">
                     <i class="fas fa-plus-circle"></i>
@@ -151,6 +151,8 @@ function createCategoryElement(category) {
             <i class="fas fa-plus"></i> Add Task
         </button>
     `;
+    // Add accordion state
+    categoryElement.classList.add('accordion-open');
     return categoryElement;
 }
 
@@ -187,6 +189,32 @@ function createTaskElementHTML(task, categoryId) {
 
 // Set up event listeners for dynamically created elements
 function setupDynamicEventListeners() {
+        // Accordion toggle for category-title
+        document.querySelectorAll('.category-title').forEach(titleEl => {
+            titleEl.removeEventListener('click', handleCategoryAccordionClick);
+            titleEl.addEventListener('click', handleCategoryAccordionClick);
+        });
+    // Accordion handler for category-title
+    function handleCategoryAccordionClick(e) {
+        const titleEl = e.currentTarget;
+        const categoryId = titleEl.dataset.categoryId;
+        const categoryEl = titleEl.closest('.category');
+        const tasksList = categoryEl.querySelector('.tasks-list');
+        const addTaskBtn = categoryEl.querySelector('.add-task-btn');
+        if (categoryEl.classList.contains('accordion-open')) {
+            // Collapse
+            tasksList.style.display = 'none';
+            addTaskBtn.style.display = 'none';
+            categoryEl.classList.remove('accordion-open');
+            categoryEl.classList.add('accordion-closed');
+        } else {
+            // Expand
+            tasksList.style.display = '';
+            addTaskBtn.style.display = '';
+            categoryEl.classList.remove('accordion-closed');
+            categoryEl.classList.add('accordion-open');
+        }
+    }
     // Category drag events
     document.querySelectorAll('.category').forEach(categoryEl => {
         categoryEl.addEventListener('dragstart', handleCategoryDragStart);
