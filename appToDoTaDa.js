@@ -212,31 +212,7 @@ function setupDynamicEventListeners() {
         titleEl.removeEventListener('click', handleCategoryAccordionClick);
         titleEl.addEventListener('click', handleCategoryAccordionClick);
     });
-}
 
-// Accordion handler for category-title
-function handleCategoryAccordionClick(e) {
-    const titleEl = e.currentTarget;
-    const categoryId = titleEl.dataset.categoryId;
-    const categoryEl = titleEl.closest('.category');
-    const tasksList = categoryEl.querySelector('.tasks-list');
-    const addTaskBtn = categoryEl.querySelector('.add-task-btn');
-    if (categoryEl.classList.contains('accordion-open')) {
-        // Collapse
-        tasksList.style.display = 'none';
-        addTaskBtn.style.display = 'none';
-        categoryEl.classList.remove('accordion-open');
-        categoryEl.classList.add('accordion-closed');
-        categoryAccordionStates[categoryId] = 'closed';
-    } else {
-        // Expand
-        tasksList.style.display = '';
-        addTaskBtn.style.display = '';
-        categoryEl.classList.remove('accordion-closed');
-        categoryEl.classList.add('accordion-open');
-        categoryAccordionStates[categoryId] = 'open';
-    }
-    localStorage.setItem('categoryAccordionStates', JSON.stringify(categoryAccordionStates));
     // Category drag events
     document.querySelectorAll('.category').forEach(categoryEl => {
         // Touch events for categories
@@ -300,6 +276,31 @@ function handleCategoryAccordionClick(e) {
     });
 }
 
+// Accordion handler for category-title
+function handleCategoryAccordionClick(e) {
+    const titleEl = e.currentTarget;
+    const categoryId = titleEl.dataset.categoryId;
+    const categoryEl = titleEl.closest('.category');
+    const tasksList = categoryEl.querySelector('.tasks-list');
+    const addTaskBtn = categoryEl.querySelector('.add-task-btn');
+    if (categoryEl.classList.contains('accordion-open')) {
+        // Collapse
+        tasksList.style.display = 'none';
+        addTaskBtn.style.display = 'none';
+        categoryEl.classList.remove('accordion-open');
+        categoryEl.classList.add('accordion-closed');
+        categoryAccordionStates[categoryId] = 'closed';
+    } else {
+        // Expand
+        tasksList.style.display = '';
+        addTaskBtn.style.display = '';
+        categoryEl.classList.remove('accordion-closed');
+        categoryEl.classList.add('accordion-open');
+        categoryAccordionStates[categoryId] = 'open';
+    }
+    localStorage.setItem('categoryAccordionStates', JSON.stringify(categoryAccordionStates));
+}
+
 // Event Handlers for buttons
 function handleEditTaskClick(e) {
     const categoryId = e.currentTarget.dataset.categoryId;
@@ -354,8 +355,10 @@ function handleTouchStart(e) {
         draggedItemType = 'category';
     } else if (target.classList.contains('task')) {
         draggedItemType = 'task';
-        // Stop propagation to prevent category touchstart if task is inside a category
-        e.stopPropagation(); 
+        // Only stop propagation if not clicking a button or interactive element
+        if (!(e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.classList.contains('edit-task') || e.target.classList.contains('delete-task') || e.target.classList.contains('add-task'))) {
+            e.stopPropagation();
+        }
     }
 
     const touch = e.touches[0];
@@ -536,7 +539,10 @@ function handleTaskDragStart(e) {
     e.dataTransfer.setData('text/plain', this.dataset.id);
     e.dataTransfer.setData('source-category-id', this.dataset.categoryId);
     // e.dataTransfer.setDragImage(new Image(), 0, 0); // Optional
-    e.stopPropagation(); // Prevent category drag from firing
+    // Only stop propagation if not clicking a button or interactive element
+    if (!(e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.classList.contains('edit-task') || e.target.classList.contains('delete-task') || e.target.classList.contains('add-task'))) {
+        e.stopPropagation(); // Prevent category drag from firing
+    }
 }
 
 function handleDragEnd() {
